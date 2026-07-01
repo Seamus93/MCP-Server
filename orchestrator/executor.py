@@ -5,6 +5,7 @@ from pathlib import Path
 from integrations.openai_client import ChatGPTDelegate
 from orchestrator.models import RoutedTask, TaskRequest
 from orchestrator.router import TaskRouter
+from providers.manual_provider import ManualProvider
 
 
 SYSTEM_PROMPT = """Sei ChatGPT dentro un MCP server usato come delegato tecnico.
@@ -20,11 +21,11 @@ Output obbligatorio:
 
 
 class DelegationExecutor:
-    """Routes a task, builds context, and delegates reasoning to ChatGPT."""
+    """Routes a task, builds context, and delegates reasoning to a provider."""
 
     def __init__(self, router: TaskRouter | None = None, delegate: ChatGPTDelegate | None = None) -> None:
         self.router = router or TaskRouter()
-        self.delegate = delegate or ChatGPTDelegate()
+        self.delegate = delegate
 
     def plan(self, task: str, repository: str | None = None, risk_level: str = "normal") -> RoutedTask:
         request = TaskRequest(
@@ -44,8 +45,27 @@ class DelegationExecutor:
     ) -> str:
         routed = self.plan(task=task, repository=repository, risk_level=risk_level)
         prompt = self._build_prompt(routed, repo_path=repo_path)
-        result = self.delegate.run(system_prompt=SYSTEM_PROMPT, user_prompt=prompt)
+        delegate = self.delegate or ChatGPTDelegate()
+        result = delegate.run(system_prompt=SYSTEM_PROMPT, user_prompt=prompt)
         return result.output
+
+    def create_manual_prompt_pack(
+        self,
+        task: str,
+        repository: str | None = None,
+        repo_path: str | None = None,
+        risk_level: str = "normal",
+        outbox_dir: str = ".mcp_outbox",
+    ) -> str:
+        routed = self.plan(task=task, repository=repository, risk_level=risk_level)
+        context = self._build_prompt(routed, repo_path=repo_path)
+        pack = ManualProvider(outbox_dir=outbox_dir).create_prompt_pack(
+            task=task,
+            system_prompt=SYSTEM_PROMPT,
+            context=context,
+            repository=repository,
+        )
+        return f"Prompt pack creato: {pack.path}\n\n{pack.content}"
 
     def _build_prompt(self, routed: RoutedTask, repo_path: str | None = None) -> str:
         agents = "\n".join(
