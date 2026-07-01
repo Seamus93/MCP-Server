@@ -3,14 +3,14 @@ from __future__ import annotations
 from pathlib import Path
 
 from integrations.openai_client import ChatGPTDelegate
-from orchestrator.models import RoutedTask, TaskRequest
-from orchestrator.router import TaskRouter
+from jarvis.supervisor import JarvisSupervisor
 from providers.manual_provider import ManualProvider
 from workflow.project_context import ProjectContextLoader
 from workflow.response_templates import CHATGPT_RESPONSE_TEMPLATE
 
 
-SYSTEM_PROMPT = """Sei ChatGPT dentro un MCP server usato come delegato tecnico.
+SYSTEM_PROMPT = """Sei Jarvis, supervisor di un sistema multi-agente.
+Coordina specialisti, non rispondere come modello generico.
 Rispondi in italiano, in modo operativo, sintetico e strutturato.
 Non dichiarare modifiche eseguite se hai solo prodotto un piano.
 Se mancano informazioni, indica il prossimo input minimo necessario.
@@ -19,20 +19,11 @@ Rispetta sempre il contratto di risposta fornito nel prompt.
 
 
 class DelegationExecutor:
-    """Routes a task, builds context, and delegates reasoning to a provider."""
+    """Builds Jarvis supervisor context and delegates reasoning to a provider."""
 
-    def __init__(self, router: TaskRouter | None = None, delegate: ChatGPTDelegate | None = None) -> None:
-        self.router = router or TaskRouter()
+    def __init__(self, delegate: ChatGPTDelegate | None = None) -> None:
         self.delegate = delegate
-
-    def plan(self, task: str, repository: str | None = None, risk_level: str = "normal") -> RoutedTask:
-        request = TaskRequest(
-            title=task[:80],
-            description=task,
-            repository=repository,
-            risk_level=risk_level,
-        )
-        return self.router.route(request)
+        self.supervisor = JarvisSupervisor()
 
     def delegate_task(
         self,
@@ -41,8 +32,7 @@ class DelegationExecutor:
         repo_path: str | None = None,
         risk_level: str = "normal",
     ) -> str:
-        routed = self.plan(task=task, repository=repository, risk_level=risk_level)
-        prompt = self._build_prompt(routed, repo_path=repo_path)
+        prompt = self._build_prompt(task=task, repository=repository, repo_path=repo_path, risk_level=risk_level)
         delegate = self.delegate or ChatGPTDelegate()
         result = delegate.run(system_prompt=SYSTEM_PROMPT, user_prompt=prompt)
         return result.output
@@ -55,8 +45,7 @@ class DelegationExecutor:
         risk_level: str = "normal",
         outbox_dir: str = ".mcp_outbox",
     ) -> str:
-        routed = self.plan(task=task, repository=repository, risk_level=risk_level)
-        context = self._build_prompt(routed, repo_path=repo_path)
+        context = self._build_prompt(task=task, repository=repository, repo_path=repo_path, risk_level=risk_level)
         pack = ManualProvider(outbox_dir=outbox_dir).create_prompt_pack(
             task=task,
             system_prompt=SYSTEM_PROMPT,
@@ -65,26 +54,23 @@ class DelegationExecutor:
         )
         return f"Prompt pack creato: {pack.path}\n\n{pack.content}"
 
-    def _build_prompt(self, routed: RoutedTask, repo_path: str | None = None) -> str:
-        agents = "\n".join(
-            f"- {agent.name}: {agent.mission}" for agent in routed.agents
-        )
-        notes = "\n".join(f"- {note}" for note in routed.execution_notes)
+    def _build_prompt(self, task: str, repository: str | None, repo_path: str | None, risk_level: str) -> str:
         repo_context = self._repo_context(repo_path) if repo_path else "Nessun repository locale fornito."
         standard_context = self._standard_context(repo_path) if repo_path else "Nessuno standard locale caricato."
+        supervisor_plan = self.supervisor.supervisor_prompt(task)
 
         return f"""
 Task utente:
-{routed.request.description}
+{task}
 
 Repository dichiarato:
-{routed.request.repository or "non specificato"}
+{repository or "non specificato"}
 
-Agenti selezionati:
-{agents}
+Risk level:
+{risk_level}
 
-Note di routing:
-{notes}
+Supervisor pattern:
+{supervisor_plan}
 
 Contesto repository locale:
 {repo_context}
@@ -95,7 +81,8 @@ Standard progetto:
 Contratto risposta:
 {CHATGPT_RESPONSE_TEMPLATE}
 
-Produci un piano MVP eseguibile e sicuro.
+Regola finale:
+Jarvis deve sintetizzare il lavoro degli specialisti e restituire una risposta unica, breve e adatta a essere letta da Google.
 """.strip()
 
     @staticmethod
