@@ -7,9 +7,8 @@ from pathlib import Path
 
 from mcp.server.fastmcp import FastMCP
 
+from jarvis.supervisor import JarvisSupervisor
 from orchestrator.executor import DelegationExecutor
-from orchestrator.models import TaskRequest
-from orchestrator.router import TaskRouter
 from workflow.diff_runner import DiffRunner
 from workflow.response_parser import ChatGPTResponseParser
 from workflow.state_store import StateStore
@@ -76,23 +75,20 @@ def run_python_tests(repo_path: str) -> str:
 
 
 @mcp.tool()
-def route_task(task: str, repository: str | None = None, risk_level: str = "normal") -> str:
-    """Route a task to the agent roles required to handle it."""
-    routed = TaskRouter().route(TaskRequest(title=task[:80], description=task, repository=repository, risk_level=risk_level))
-    agents = "\n".join(f"- {agent.role.value}: {agent.name}" for agent in routed.agents)
-    notes = "\n".join(f"- {note}" for note in routed.execution_notes)
-    return f"Agenti selezionati:\n{agents}\n\nNote:\n{notes}"
+def plan_supervised_task(task: str) -> str:
+    """Return Jarvis supervisor plan for a task."""
+    return json.dumps(JarvisSupervisor().build_plan(task).to_dict(), ensure_ascii=False, indent=2)
 
 
 @mcp.tool()
 def gemini_task(task: str, repository: str | None = "Seamus93/MCP-Server", repo_path: str | None = None, risk_level: str = "normal", outbox_dir: str = ".mcp_outbox") -> str:
-    """Primary Gemini-facing command: create the next ChatGPT prompt pack."""
+    """Primary Gemini-facing command: create the next Jarvis supervisor prompt pack."""
     return create_chatgpt_prompt_pack(task=task, repository=repository, repo_path=repo_path, risk_level=risk_level, outbox_dir=outbox_dir)
 
 
 @mcp.tool()
 def create_chatgpt_prompt_pack(task: str, repository: str | None = None, repo_path: str | None = None, risk_level: str = "normal", outbox_dir: str = ".mcp_outbox") -> str:
-    """Create a zero-cost prompt pack to paste manually into ChatGPT Pro."""
+    """Create a zero-cost Jarvis supervisor prompt pack to paste manually into ChatGPT Pro."""
     executor = DelegationExecutor()
     return executor.create_manual_prompt_pack(task=task, repository=repository, repo_path=repo_path, risk_level=risk_level, outbox_dir=outbox_dir)
 
@@ -131,10 +127,7 @@ def verify_plan_diff(repo_path: str, plan_path: str) -> str:
 
 @mcp.tool()
 def delegate_to_chatgpt(task: str, repository: str | None = None, repo_path: str | None = None, risk_level: str = "normal") -> str:
-    """Delegate a technical task to ChatGPT through OpenAI API.
-
-    Requires OPENAI_API_KEY. For zero-cost MVP use create_chatgpt_prompt_pack.
-    """
+    """Delegate a technical task through the configured API provider. Prefer gemini_task for zero-cost MVP."""
     executor = DelegationExecutor()
     return executor.delegate_task(task=task, repository=repository, repo_path=repo_path, risk_level=risk_level)
 
