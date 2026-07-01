@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MCP-Server</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">MCP-OS Console</p>
+        <h1>{% block title %}Dashboard{% endblock %}</h1>
+      </div>
+      <a class="pill" href="/health">health</a>
+    </header>
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>
