@@ -2,23 +2,34 @@
 
 ## Stato
 
-Inizializzazione standard completata.
+MVP core completato per workflow Gemini to MCP to ChatGPT Pro manuale.
 
 ## Ultimo avanzamento
 
-- creato MCP server minimale
-- aggiunto orchestrator rule-based
-- copiato registro `.skills` da AgriAvenger
-- introdotta documentazione canonica `docs/`
+- aggiunto tool `gemini_task` come comando principale per Gemini
+- aggiunto caricamento standard progetto da `.skills`, `AGENTS.md` e `docs/`
+- aggiunto contratto di risposta ChatGPT
+- aggiunto ingest risposta manuale
+- aggiunti store workflow e lista piani
+- aggiunti approve e verifica diff
+- aggiunta dashboard web non bloccante
+- aggiunta dockerizzazione predisposta per VPS futuro
 
 ## Prossime azioni
 
-1. completare prompt mancanti: docs, release, security
-2. aggiungere test unitari per router
-3. aggiornare README con standard operativo
-4. validare GitHub Actions
+1. collegare Gemini a un client MCP locale
+2. testare end-to-end su repository locale
+3. aggiungere deploy VPS quando DuckDNS e server saranno pronti
+4. aggiungere autenticazione alla web UI quando verra esposta online
 
 ## Rischi
 
-- code search non indicizzato sui repo sorgente
-- discovery completa della cartella `.skills` limitata ai file conosciuti
+- Gemini deve poter invocare il server MCP tramite client compatibile
+- il flusso zero-cost richiede copia/incolla manuale con ChatGPT Pro
+- applicazione diff deve restare controllata e approvata
+
+## Percentuale
+
+Core MVP: 100%
+Web UI: esclusa dal conteggio core
+Deploy VPS: predisposto, attivazione futura
