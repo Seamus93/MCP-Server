@@ -3,6 +3,8 @@ from __future__ import annotations
 from pathlib import Path
 
 from integrations.openai_client import ChatGPTDelegate
+from jarvis.executor import PlanExecutor
+from jarvis.planner import FlightPlanner
 from jarvis.supervisor import JarvisSupervisor
 from providers.manual_provider import ManualProvider
 from workflow.project_context import ProjectContextLoader
@@ -24,6 +26,7 @@ class DelegationExecutor:
     def __init__(self, delegate: ChatGPTDelegate | None = None) -> None:
         self.delegate = delegate
         self.supervisor = JarvisSupervisor()
+        self.flight_planner = FlightPlanner()
 
     def delegate_task(
         self,
@@ -58,6 +61,8 @@ class DelegationExecutor:
         repo_context = self._repo_context(repo_path) if repo_path else "Nessun repository locale fornito."
         standard_context = self._standard_context(repo_path) if repo_path else "Nessuno standard locale caricato."
         supervisor_plan = self.supervisor.supervisor_prompt(task)
+        flight_plan = self.flight_planner.build(task=task, repository=repository, repo_path=repo_path)
+        work_packages = PlanExecutor().prepare_work_packages(flight_plan)
 
         return f"""
 Task utente:
@@ -71,6 +76,12 @@ Risk level:
 
 Supervisor pattern:
 {supervisor_plan}
+
+Flight plan JSON:
+{flight_plan.to_json()}
+
+Work packages:
+{work_packages}
 
 Contesto repository locale:
 {repo_context}
