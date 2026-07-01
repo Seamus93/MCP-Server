@@ -9,7 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from jarvis.formatter import format_agent_response
-from jarvis.router import JarvisRouter
+from jarvis.supervisor import JarvisSupervisor
 from orchestrator.executor import DelegationExecutor
 from web.schemas import VoiceCommandRequest, VoiceCommandResponse
 from web.security import require_gateway_token
@@ -44,7 +44,9 @@ def health() -> str:
 @app.post("/api/voice-command", response_model=VoiceCommandResponse, dependencies=[Depends(require_gateway_token)])
 def voice_command(payload: VoiceCommandRequest) -> VoiceCommandResponse:
     executor = DelegationExecutor()
-    agent = JarvisRouter().select_agent(payload.command)
+    supervisor = JarvisSupervisor()
+    plan = supervisor.build_plan(payload.command)
+    primary = supervisor.router.select_agent(payload.command)
     if payload.mode == "api":
         raw_reply = executor.delegate_task(
             task=payload.command,
@@ -52,8 +54,8 @@ def voice_command(payload: VoiceCommandRequest) -> VoiceCommandResponse:
             repo_path=payload.repo_path,
             risk_level=payload.risk_level,
         )
-        reply = format_agent_response(agent, raw_reply)
-        return VoiceCommandResponse(status="completed", mode=payload.mode, reply=reply, next_step=f"Leggi la risposta come {agent.voice}.")
+        reply = format_agent_response(primary, raw_reply)
+        return VoiceCommandResponse(status="completed", mode=payload.mode, reply=reply, next_step="Jarvis ha sintetizzato la risposta degli specialisti.")
 
     raw_reply = executor.create_manual_prompt_pack(
         task=payload.command,
@@ -62,18 +64,18 @@ def voice_command(payload: VoiceCommandRequest) -> VoiceCommandResponse:
         risk_level=payload.risk_level,
         outbox_dir=str(OUTBOX_DIR),
     )
-    reply = format_agent_response(agent, raw_reply)
+    reply = format_agent_response(primary, raw_reply)
     return VoiceCommandResponse(
         status="prompt_pack_created",
         mode="prompt_pack",
         reply=reply,
-        next_step=f"Voce agente: {agent.voice}. Incolla il prompt pack in ChatGPT Pro, poi invia la risposta a /api/ingest-response.",
+        next_step=f"Supervisor: {plan.supervisor}. Primary: {plan.primary_agent}. Incolla il prompt pack in ChatGPT Pro, poi invia la risposta a /api/ingest-response.",
     )
 
 
-@app.get("/api/jarvis/route", dependencies=[Depends(require_gateway_token)])
-def api_jarvis_route(task: str) -> dict[str, object]:
-    return JarvisRouter().route_payload(task)
+@app.get("/api/jarvis/plan", dependencies=[Depends(require_gateway_token)])
+def api_jarvis_plan(task: str) -> dict[str, object]:
+    return JarvisSupervisor().build_plan(task).to_dict()
 
 
 @app.post("/api/ingest-response", dependencies=[Depends(require_gateway_token)])
