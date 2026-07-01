@@ -8,6 +8,8 @@ from fastapi.responses import HTMLResponse, PlainTextResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
+from jarvis.formatter import format_agent_response
+from jarvis.router import JarvisRouter
 from orchestrator.executor import DelegationExecutor
 from web.schemas import VoiceCommandRequest, VoiceCommandResponse
 from web.security import require_gateway_token
@@ -42,28 +44,36 @@ def health() -> str:
 @app.post("/api/voice-command", response_model=VoiceCommandResponse, dependencies=[Depends(require_gateway_token)])
 def voice_command(payload: VoiceCommandRequest) -> VoiceCommandResponse:
     executor = DelegationExecutor()
+    agent = JarvisRouter().select_agent(payload.command)
     if payload.mode == "api":
-        reply = executor.delegate_task(
+        raw_reply = executor.delegate_task(
             task=payload.command,
             repository=payload.repository,
             repo_path=payload.repo_path,
             risk_level=payload.risk_level,
         )
-        return VoiceCommandResponse(status="completed", mode=payload.mode, reply=reply, next_step="Leggi la risposta all'utente.")
+        reply = format_agent_response(agent, raw_reply)
+        return VoiceCommandResponse(status="completed", mode=payload.mode, reply=reply, next_step=f"Leggi la risposta come {agent.voice}.")
 
-    reply = executor.create_manual_prompt_pack(
+    raw_reply = executor.create_manual_prompt_pack(
         task=payload.command,
         repository=payload.repository,
         repo_path=payload.repo_path,
         risk_level=payload.risk_level,
         outbox_dir=str(OUTBOX_DIR),
     )
+    reply = format_agent_response(agent, raw_reply)
     return VoiceCommandResponse(
         status="prompt_pack_created",
         mode="prompt_pack",
         reply=reply,
-        next_step="Incolla il prompt pack in ChatGPT Pro, poi invia la risposta a /api/ingest-response.",
+        next_step=f"Voce agente: {agent.voice}. Incolla il prompt pack in ChatGPT Pro, poi invia la risposta a /api/ingest-response.",
     )
+
+
+@app.get("/api/jarvis/route", dependencies=[Depends(require_gateway_token)])
+def api_jarvis_route(task: str) -> dict[str, object]:
+    return JarvisRouter().route_payload(task)
 
 
 @app.post("/api/ingest-response", dependencies=[Depends(require_gateway_token)])
