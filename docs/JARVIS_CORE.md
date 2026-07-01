@@ -2,19 +2,20 @@
 
 ## Obiettivo
 
-Aggiungere identita agli agenti: ogni task viene associato a un agente, un tono, una voce simbolica e una policy modello.
+Jarvis non e piu un semplice router keyword-based. Ora usa un pattern Supervisor: Jarvis riceve il task, seleziona uno o piu specialisti, impone una sequenza di lavoro e mantiene la responsabilita della risposta finale.
 
 ## Componenti
 
 ```text
-jarvis/registry.py   agent registry
-jarvis/router.py     scelta agente da task
-jarvis/formatter.py  formato risposta con metadati vocali
+jarvis/registry.py     agent registry
+jarvis/router.py       selezione primary agent
+jarvis/supervisor.py   piano multi-agente supervisionato
+jarvis/formatter.py    formato risposta con metadati vocali
 ```
 
 ## Agenti iniziali
 
-- Jarvis: orchestratore executive
+- Jarvis: supervisor executive
 - Architect: architettura e strategia tecnica
 - Coder: implementazione
 - Reviewer: revisione qualita
@@ -22,21 +23,51 @@ jarvis/formatter.py  formato risposta con metadati vocali
 - Docs: documentazione
 - Release: rilascio
 
+## Pattern Supervisor
+
+Flusso:
+
+```text
+Task utente
+  -> Jarvis Supervisor
+  -> primary agent
+  -> specialisti aggiuntivi se necessari
+  -> Jarvis sintesi finale
+  -> Google / Gateway
+```
+
+Esempio:
+
+```text
+"Implementa un endpoint sicuro"
+  -> Coder
+  -> Reviewer
+  -> Security
+  -> Jarvis summary
+```
+
 ## Endpoint
 
 ```text
-GET /api/jarvis/route?task=...
+GET /api/jarvis/plan?task=...
 POST /api/voice-command
+```
+
+## MCP tool
+
+```text
+plan_supervised_task(task)
+gemini_task(task, repository, repo_path)
 ```
 
 ## Risposta gateway
 
-La risposta include prefisso agente:
+La risposta include prefisso agente primario:
 
 ```text
-[Architect Agent | voce=daedalus | tono=calmo, tecnico, strutturato]
+[Coder Agent | voce=forge | tono=diretto, operativo, pragmatico]
 ```
 
-## Uso futuro
+## Regola strategica
 
-La voce e per ora un metadato testuale. In futuro una PWA, APK o TTS potra usare `voice` per scegliere una voce diversa per ogni agente.
+Gli specialisti producono analisi e piano. Jarvis sintetizza in una risposta unica, breve e adatta a essere letta da Google.
