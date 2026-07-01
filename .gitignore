@@ -6,3 +6,5 @@ __pycache__/
 .vscode/
 node_modules/
 .DS_Store
+.mcp_outbox/
+.pytest_cache/
