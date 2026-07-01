@@ -9,6 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from jarvis.formatter import format_agent_response
+from jarvis.planner import FlightPlanner
 from jarvis.supervisor import JarvisSupervisor
 from orchestrator.executor import DelegationExecutor
 from web.schemas import VoiceCommandRequest, VoiceCommandResponse
@@ -76,6 +77,11 @@ def voice_command(payload: VoiceCommandRequest) -> VoiceCommandResponse:
 @app.get("/api/jarvis/plan", dependencies=[Depends(require_gateway_token)])
 def api_jarvis_plan(task: str) -> dict[str, object]:
     return JarvisSupervisor().build_plan(task).to_dict()
+
+
+@app.get("/api/jarvis/flight-plan", dependencies=[Depends(require_gateway_token)])
+def api_jarvis_flight_plan(task: str, repository: str | None = None, repo_path: str | None = None) -> dict[str, object]:
+    return FlightPlanner().build(task=task, repository=repository, repo_path=repo_path).to_dict()
 
 
 @app.post("/api/ingest-response", dependencies=[Depends(require_gateway_token)])
