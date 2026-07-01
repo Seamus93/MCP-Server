@@ -1,0 +1,19 @@
+services:
+  mcp-server:
+    image: ghcr.io/seamus93/mcp-server:latest
+    container_name: mcp-server
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4.1-mini}
+    volumes:
+      - mcp_outbox:/app/.mcp_outbox
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health').read()"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  mcp_outbox:
