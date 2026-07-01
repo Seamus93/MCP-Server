@@ -6,17 +6,15 @@ from integrations.openai_client import ChatGPTDelegate
 from orchestrator.models import RoutedTask, TaskRequest
 from orchestrator.router import TaskRouter
 from providers.manual_provider import ManualProvider
+from workflow.project_context import ProjectContextLoader
+from workflow.response_templates import CHATGPT_RESPONSE_TEMPLATE
 
 
 SYSTEM_PROMPT = """Sei ChatGPT dentro un MCP server usato come delegato tecnico.
 Rispondi in italiano, in modo operativo, sintetico e strutturato.
 Non dichiarare modifiche eseguite se hai solo prodotto un piano.
 Se mancano informazioni, indica il prossimo input minimo necessario.
-Output obbligatorio:
-1. Sintesi
-2. Piano operativo
-3. Rischi
-4. Prossima azione
+Rispetta sempre il contratto di risposta fornito nel prompt.
 """
 
 
@@ -73,6 +71,7 @@ class DelegationExecutor:
         )
         notes = "\n".join(f"- {note}" for note in routed.execution_notes)
         repo_context = self._repo_context(repo_path) if repo_path else "Nessun repository locale fornito."
+        standard_context = self._standard_context(repo_path) if repo_path else "Nessuno standard locale caricato."
 
         return f"""
 Task utente:
@@ -90,6 +89,12 @@ Note di routing:
 Contesto repository locale:
 {repo_context}
 
+Standard progetto:
+{standard_context}
+
+Contratto risposta:
+{CHATGPT_RESPONSE_TEMPLATE}
+
 Produci un piano MVP eseguibile e sicuro.
 """.strip()
 
@@ -99,13 +104,17 @@ Produci un piano MVP eseguibile e sicuro.
         if not root.exists():
             return f"Path non trovato: {root}"
         files = []
-        ignored = {".git", ".venv", "node_modules", "__pycache__"}
+        ignored = {".git", ".venv", "node_modules", "__pycache__", ".mcp_outbox"}
         for current_root, dirs, names in __import__("os").walk(root):
             dirs[:] = [d for d in dirs if d not in ignored]
             for name in names:
                 files.append(str((Path(current_root) / name).relative_to(root)))
-                if len(files) >= 60:
+                if len(files) >= 80:
                     break
-            if len(files) >= 60:
+            if len(files) >= 80:
                 break
         return "File principali:\n" + "\n".join(files)
+
+    @staticmethod
+    def _standard_context(repo_path: str) -> str:
+        return ProjectContextLoader().load(repo_path)
