@@ -17,7 +17,9 @@ MCP genera un prompt pack in .mcp_outbox
         ↓
 Utente incolla il prompt in ChatGPT Pro
         ↓
-Utente riporta la risposta nel workflow
+Utente incolla la risposta in ingest_chatgpt_response
+        ↓
+MCP salva un piano strutturato in .mcp_outbox/responses
 ```
 
 ## Flusso API futuro
@@ -50,6 +52,15 @@ Genera un prompt pack locale da incollare manualmente in ChatGPT Pro.
 
 Non richiede API key.
 
+### ingest_chatgpt_response
+
+Prende la risposta manuale di ChatGPT, estrae sezioni operative, valida il formato e salva un artefatto JSON.
+
+Stati possibili:
+
+- `planned`: risposta strutturata e utilizzabile
+- `needs_review`: mancano sezioni o ci sono warning
+
 ### delegate_to_chatgpt
 
 Delega il task a ChatGPT tramite OpenAI API.
@@ -76,4 +87,4 @@ OPENAI_MODEL
 
 ## Prossimo step
 
-Aggiungere un tool `ingest_chatgpt_response` che prende la risposta manuale e la trasforma in piano verificabile.
+Aggiungere `approve_plan` ed `execute_plan` per applicare patch solo dopo approvazione esplicita.
