@@ -6,6 +6,10 @@ from pathlib import Path
 
 from mcp.server.fastmcp import FastMCP
 
+from orchestrator.executor import DelegationExecutor
+from orchestrator.models import TaskRequest
+from orchestrator.router import TaskRouter
+
 mcp = FastMCP("MCP-Server")
 
 MAX_READ_CHARS = 12_000
@@ -78,6 +82,43 @@ def run_python_tests(repo_path: str) -> str:
     )
     output = (result.stdout + "\n" + result.stderr).strip()
     return output[-6000:] or "No test output"
+
+
+@mcp.tool()
+def route_task(task: str, repository: str | None = None, risk_level: str = "normal") -> str:
+    """Route a task to the agent roles required to handle it."""
+    routed = TaskRouter().route(
+        TaskRequest(
+            title=task[:80],
+            description=task,
+            repository=repository,
+            risk_level=risk_level,
+        )
+    )
+    agents = "\n".join(f"- {agent.role.value}: {agent.name}" for agent in routed.agents)
+    notes = "\n".join(f"- {note}" for note in routed.execution_notes)
+    return f"Agenti selezionati:\n{agents}\n\nNote:\n{notes}"
+
+
+@mcp.tool()
+def delegate_to_chatgpt(
+    task: str,
+    repository: str | None = None,
+    repo_path: str | None = None,
+    risk_level: str = "normal",
+) -> str:
+    """Delegate a technical task to ChatGPT and return an operational plan.
+
+    This is the MVP bridge for Gemini -> MCP -> ChatGPT.
+    Requires OPENAI_API_KEY in the local environment.
+    """
+    executor = DelegationExecutor()
+    return executor.delegate_task(
+        task=task,
+        repository=repository,
+        repo_path=repo_path,
+        risk_level=risk_level,
+    )
 
 
 if __name__ == "__main__":
