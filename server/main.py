@@ -45,7 +45,7 @@ def git_status(repo_path: str) -> str:
 def list_files(root_path: str, max_files: int = 80) -> str:
     """List files under a directory, skipping common generated folders."""
     root = _safe_path(root_path)
-    ignored = {".git", ".venv", "node_modules", "__pycache__"}
+    ignored = {".git", ".venv", "node_modules", "__pycache__", ".mcp_outbox"}
     files: list[str] = []
 
     for current_root, dirs, names in os.walk(root):
@@ -101,16 +101,34 @@ def route_task(task: str, repository: str | None = None, risk_level: str = "norm
 
 
 @mcp.tool()
+def create_chatgpt_prompt_pack(
+    task: str,
+    repository: str | None = None,
+    repo_path: str | None = None,
+    risk_level: str = "normal",
+    outbox_dir: str = ".mcp_outbox",
+) -> str:
+    """Create a zero-cost prompt pack to paste manually into ChatGPT Pro."""
+    executor = DelegationExecutor()
+    return executor.create_manual_prompt_pack(
+        task=task,
+        repository=repository,
+        repo_path=repo_path,
+        risk_level=risk_level,
+        outbox_dir=outbox_dir,
+    )
+
+
+@mcp.tool()
 def delegate_to_chatgpt(
     task: str,
     repository: str | None = None,
     repo_path: str | None = None,
     risk_level: str = "normal",
 ) -> str:
-    """Delegate a technical task to ChatGPT and return an operational plan.
+    """Delegate a technical task to ChatGPT through OpenAI API.
 
-    This is the MVP bridge for Gemini -> MCP -> ChatGPT.
-    Requires OPENAI_API_KEY in the local environment.
+    Requires OPENAI_API_KEY. For zero-cost MVP use create_chatgpt_prompt_pack.
     """
     executor = DelegationExecutor()
     return executor.delegate_task(
