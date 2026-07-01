@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<section class="grid">
+  <article class="card span-2">
+    <h2>Nuovo task</h2>
+    <form method="post" action="/tasks/prompt-pack" class="stack">
+      <label>Task</label>
+      <textarea name="task" rows="5" placeholder="Es. Analizza il repo e proponi il prossimo step MVP" required></textarea>
+      <div class="row">
+        <div>
+          <label>Repository</label>
+          <input name="repository" value="Seamus93/MCP-Server">
+        </div>
+        <div>
+          <label>Repo path locale</label>
+          <input name="repo_path" placeholder="/srv/mcp-server">
+        </div>
+        <div>
+          <label>Rischio</label>
+          <select name="risk_level">
+            <option value="normal">normal</option>
+            <option value="high">high</option>
+          </select>
+        </div>
+      </div>
+      <button type="submit">Genera prompt pack</button>
+    </form>
+  </article>
+
+  <article class="card">
+    <h2>Stato</h2>
+    <p><strong>Server:</strong> online</p>
+    <p><strong>Outbox:</strong> {{ outbox }}</p>
+    <p><strong>Modalità:</strong> zero-cost manual</p>
+  </article>
+
+  <article class="card span-2">
+    <h2>Incolla risposta ChatGPT</h2>
+    <form method="post" action="/responses/ingest" class="stack">
+      <label>ID risposta opzionale</label>
+      <input name="response_id" placeholder="mvp-parser-001">
+      <label>Risposta</label>
+      <textarea name="response" rows="8" placeholder="Incolla qui la risposta strutturata di ChatGPT" required></textarea>
+      <button type="submit">Ingest risposta</button>
+    </form>
+  </article>
+
+  <article class="card">
+    <h2>Workflow recenti</h2>
+    {% if responses %}
+      <ul class="list">
+      {% for item in responses %}
+        <li><strong>{{ item.status }}</strong><br>{{ item.name }}<br><span>{{ item.summary }}</span></li>
+      {% endfor %}
+      </ul>
+      <form method="post" action="/workflow/clear"><button class="secondary">Pulisci</button></form>
+    {% else %}
+      <p>Nessuna risposta acquisita.</p>
+    {% endif %}
+  </article>
+</section>
+{% endblock %}
