@@ -9,6 +9,7 @@ from mcp.server.fastmcp import FastMCP
 from orchestrator.executor import DelegationExecutor
 from orchestrator.models import TaskRequest
 from orchestrator.router import TaskRouter
+from workflow.response_parser import ChatGPTResponseParser
 
 mcp = FastMCP("MCP-Server")
 
@@ -117,6 +118,19 @@ def create_chatgpt_prompt_pack(
         risk_level=risk_level,
         outbox_dir=outbox_dir,
     )
+
+
+@mcp.tool()
+def ingest_chatgpt_response(
+    response: str,
+    response_id: str | None = None,
+    outbox_dir: str = ".mcp_outbox/responses",
+) -> str:
+    """Ingest a manually pasted ChatGPT response and save a structured workflow artifact."""
+    parser = ChatGPTResponseParser()
+    parsed = parser.parse(response)
+    path = parser.save(parsed, outbox_dir=outbox_dir, response_id=response_id)
+    return f"Stato: {parsed.status}\nFile salvato: {path}\nWarning: {', '.join(parsed.warnings) or 'none'}\n\n{parsed.to_json()}"
 
 
 @mcp.tool()
