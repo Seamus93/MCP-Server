@@ -79,7 +79,7 @@ class ChatGPTResponseParser:
         sections: dict[str, str] = {}
         matches = list(
             re.finditer(
-                r"(?im)^\s*(?:#{1,3}\s*)?(?:\d+[.)]\s*)?([A-Za-zÀ-ÿ ]{3,40})\s*:?") ,
+                r"(?im)^\s*(?:#{1,3}\s*)?(?:\d+[.)]\s*)?([A-Za-zÀ-ÿ ]{3,40})\s*:?[ \t]*$",
                 response,
             )
         )
