@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 import subprocess
 from pathlib import Path
@@ -9,7 +10,9 @@ from mcp.server.fastmcp import FastMCP
 from orchestrator.executor import DelegationExecutor
 from orchestrator.models import TaskRequest
 from orchestrator.router import TaskRouter
+from workflow.diff_runner import DiffRunner
 from workflow.response_parser import ChatGPTResponseParser
+from workflow.state_store import StateStore
 
 mcp = FastMCP("MCP-Server")
 
@@ -33,12 +36,7 @@ def health_check() -> str:
 def git_status(repo_path: str) -> str:
     """Return short git status for a local repository."""
     repo = _safe_path(repo_path)
-    result = subprocess.run(
-        ["git", "-C", str(repo), "status", "--short"],
-        capture_output=True,
-        text=True,
-        timeout=20,
-    )
+    result = subprocess.run(["git", "-C", str(repo), "status", "--short"], capture_output=True, text=True, timeout=20)
     return result.stdout.strip() or result.stderr.strip() or "Clean working tree"
 
 
@@ -48,7 +46,6 @@ def list_files(root_path: str, max_files: int = 80) -> str:
     root = _safe_path(root_path)
     ignored = {".git", ".venv", "node_modules", "__pycache__", ".mcp_outbox"}
     files: list[str] = []
-
     for current_root, dirs, names in os.walk(root):
         dirs[:] = [d for d in dirs if d not in ignored]
         for name in names:
@@ -56,7 +53,6 @@ def list_files(root_path: str, max_files: int = 80) -> str:
             files.append(str(full_path.relative_to(root)))
             if len(files) >= max_files:
                 return "\n".join(files)
-
     return "\n".join(files) or "No files found"
 
 
@@ -74,13 +70,7 @@ def read_text_file(path: str, max_chars: int = MAX_READ_CHARS) -> str:
 def run_python_tests(repo_path: str) -> str:
     """Run pytest in a local repository and return compact output."""
     repo = _safe_path(repo_path)
-    result = subprocess.run(
-        ["python", "-m", "pytest", "-q"],
-        cwd=str(repo),
-        capture_output=True,
-        text=True,
-        timeout=120,
-    )
+    result = subprocess.run(["python", "-m", "pytest", "-q"], cwd=str(repo), capture_output=True, text=True, timeout=120)
     output = (result.stdout + "\n" + result.stderr).strip()
     return output[-6000:] or "No test output"
 
@@ -88,44 +78,27 @@ def run_python_tests(repo_path: str) -> str:
 @mcp.tool()
 def route_task(task: str, repository: str | None = None, risk_level: str = "normal") -> str:
     """Route a task to the agent roles required to handle it."""
-    routed = TaskRouter().route(
-        TaskRequest(
-            title=task[:80],
-            description=task,
-            repository=repository,
-            risk_level=risk_level,
-        )
-    )
+    routed = TaskRouter().route(TaskRequest(title=task[:80], description=task, repository=repository, risk_level=risk_level))
     agents = "\n".join(f"- {agent.role.value}: {agent.name}" for agent in routed.agents)
     notes = "\n".join(f"- {note}" for note in routed.execution_notes)
     return f"Agenti selezionati:\n{agents}\n\nNote:\n{notes}"
 
 
 @mcp.tool()
-def create_chatgpt_prompt_pack(
-    task: str,
-    repository: str | None = None,
-    repo_path: str | None = None,
-    risk_level: str = "normal",
-    outbox_dir: str = ".mcp_outbox",
-) -> str:
-    """Create a zero-cost prompt pack to paste manually into ChatGPT Pro."""
-    executor = DelegationExecutor()
-    return executor.create_manual_prompt_pack(
-        task=task,
-        repository=repository,
-        repo_path=repo_path,
-        risk_level=risk_level,
-        outbox_dir=outbox_dir,
-    )
+def gemini_task(task: str, repository: str | None = "Seamus93/MCP-Server", repo_path: str | None = None, risk_level: str = "normal", outbox_dir: str = ".mcp_outbox") -> str:
+    """Primary Gemini-facing command: create the next ChatGPT prompt pack."""
+    return create_chatgpt_prompt_pack(task=task, repository=repository, repo_path=repo_path, risk_level=risk_level, outbox_dir=outbox_dir)
 
 
 @mcp.tool()
-def ingest_chatgpt_response(
-    response: str,
-    response_id: str | None = None,
-    outbox_dir: str = ".mcp_outbox/responses",
-) -> str:
+def create_chatgpt_prompt_pack(task: str, repository: str | None = None, repo_path: str | None = None, risk_level: str = "normal", outbox_dir: str = ".mcp_outbox") -> str:
+    """Create a zero-cost prompt pack to paste manually into ChatGPT Pro."""
+    executor = DelegationExecutor()
+    return executor.create_manual_prompt_pack(task=task, repository=repository, repo_path=repo_path, risk_level=risk_level, outbox_dir=outbox_dir)
+
+
+@mcp.tool()
+def ingest_chatgpt_response(response: str, response_id: str | None = None, outbox_dir: str = ".mcp_outbox/responses") -> str:
     """Ingest a manually pasted ChatGPT response and save a structured workflow artifact."""
     parser = ChatGPTResponseParser()
     parsed = parser.parse(response)
@@ -134,23 +107,36 @@ def ingest_chatgpt_response(
 
 
 @mcp.tool()
-def delegate_to_chatgpt(
-    task: str,
-    repository: str | None = None,
-    repo_path: str | None = None,
-    risk_level: str = "normal",
-) -> str:
+def list_workflow_plans(outbox_dir: str = ".mcp_outbox/responses") -> str:
+    """List stored workflow plan artifacts."""
+    return json.dumps(StateStore(outbox_dir).list_items(), ensure_ascii=False, indent=2)
+
+
+@mcp.tool()
+def approve_plan(plan_path: str) -> str:
+    """Mark a stored workflow plan as approved."""
+    path = StateStore().update_status(plan_path, "approved")
+    return f"Piano approvato: {path}"
+
+
+@mcp.tool()
+def verify_plan_diff(repo_path: str, plan_path: str) -> str:
+    """Verify the diff embedded in a workflow artifact."""
+    payload = StateStore().read(plan_path)
+    diff_text = str(payload.get("patch", "")).strip()
+    if not diff_text:
+        raise ValueError("Il piano non contiene una patch/diff")
+    return DiffRunner().verify(repo_path=repo_path, diff_text=diff_text)
+
+
+@mcp.tool()
+def delegate_to_chatgpt(task: str, repository: str | None = None, repo_path: str | None = None, risk_level: str = "normal") -> str:
     """Delegate a technical task to ChatGPT through OpenAI API.
 
     Requires OPENAI_API_KEY. For zero-cost MVP use create_chatgpt_prompt_pack.
     """
     executor = DelegationExecutor()
-    return executor.delegate_task(
-        task=task,
-        repository=repository,
-        repo_path=repo_path,
-        risk_level=risk_level,
-    )
+    return executor.delegate_task(task=task, repository=repository, repo_path=repo_path, risk_level=risk_level)
 
 
 if __name__ == "__main__":
