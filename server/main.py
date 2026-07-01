@@ -7,6 +7,7 @@ from pathlib import Path
 
 from mcp.server.fastmcp import FastMCP
 
+from jarvis.planner import FlightPlanner
 from jarvis.supervisor import JarvisSupervisor
 from orchestrator.executor import DelegationExecutor
 from workflow.diff_runner import DiffRunner
@@ -78,6 +79,12 @@ def run_python_tests(repo_path: str) -> str:
 def plan_supervised_task(task: str) -> str:
     """Return Jarvis supervisor plan for a task."""
     return json.dumps(JarvisSupervisor().build_plan(task).to_dict(), ensure_ascii=False, indent=2)
+
+
+@mcp.tool()
+def create_flight_plan(task: str, repository: str | None = None, repo_path: str | None = None) -> str:
+    """Return top-down flight plan JSON for Supervisor-Executor execution."""
+    return FlightPlanner().build(task=task, repository=repository, repo_path=repo_path).to_json()
 
 
 @mcp.tool()
