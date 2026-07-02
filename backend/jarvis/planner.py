@@ -4,7 +4,7 @@ import json
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 
-from jarvis.supervisor import JarvisSupervisor
+from backend.jarvis.supervisor import JarvisSupervisor
 
 
 @dataclass

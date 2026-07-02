@@ -7,12 +7,12 @@ from pathlib import Path
 
 from mcp.server.fastmcp import FastMCP
 
-from jarvis.planner import FlightPlanner
-from jarvis.supervisor import JarvisSupervisor
-from orchestrator.executor import DelegationExecutor
-from workflow.diff_runner import DiffRunner
-from workflow.response_parser import ChatGPTResponseParser
-from workflow.state_store import StateStore
+from backend.jarvis.planner import FlightPlanner
+from backend.jarvis.supervisor import JarvisSupervisor
+from backend.orchestrator.executor import DelegationExecutor
+from backend.workflow.diff_runner import DiffRunner
+from backend.workflow.response_parser import ChatGPTResponseParser
+from backend.workflow.state_store import StateStore
 
 mcp = FastMCP("MCP-Server")
 

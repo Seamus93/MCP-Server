@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
 
-from jarvis.registry import JarvisAgent, get_agent
-from jarvis.router import JarvisRouter
+from backend.jarvis.registry import JarvisAgent, get_agent
+from backend.jarvis.router import JarvisRouter
 
 
 @dataclass

@@ -2,13 +2,13 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from integrations.openai_client import ChatGPTDelegate
-from jarvis.executor import PlanExecutor
-from jarvis.planner import FlightPlanner
-from jarvis.supervisor import JarvisSupervisor
-from providers.manual_provider import ManualProvider
-from workflow.project_context import ProjectContextLoader
-from workflow.response_templates import CHATGPT_RESPONSE_TEMPLATE
+from backend.integrations.openai_client import ChatGPTDelegate
+from backend.jarvis.executor import PlanExecutor
+from backend.jarvis.planner import FlightPlanner
+from backend.jarvis.supervisor import JarvisSupervisor
+from backend.providers.manual_provider import ManualProvider
+from backend.workflow.project_context import ProjectContextLoader
+from backend.workflow.response_templates import CHATGPT_RESPONSE_TEMPLATE
 
 
 SYSTEM_PROMPT = """Sei Jarvis, supervisor di un sistema multi-agente.

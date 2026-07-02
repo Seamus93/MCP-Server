@@ -8,21 +8,21 @@ from fastapi.responses import HTMLResponse, PlainTextResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from jarvis.formatter import format_agent_response
-from jarvis.planner import FlightPlanner
-from jarvis.supervisor import JarvisSupervisor
-from orchestrator.executor import DelegationExecutor
-from web.schemas import VoiceCommandRequest, VoiceCommandResponse
-from web.security import require_gateway_token
-from workflow.response_parser import ChatGPTResponseParser
+from backend.jarvis.formatter import format_agent_response
+from backend.jarvis.planner import FlightPlanner
+from backend.jarvis.supervisor import JarvisSupervisor
+from backend.orchestrator.executor import DelegationExecutor
+from backend.web.schemas import VoiceCommandRequest, VoiceCommandResponse
+from backend.web.security import require_gateway_token
+from backend.workflow.response_parser import ChatGPTResponseParser
 
-BASE_DIR = Path(__file__).resolve().parent.parent
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
 OUTBOX_DIR = BASE_DIR / ".mcp_outbox"
 RESPONSES_DIR = OUTBOX_DIR / "responses"
 
 app = FastAPI(title="MCP-Server Dashboard")
-app.mount("/static", StaticFiles(directory=str(BASE_DIR / "web" / "static")), name="static")
-templates = Jinja2Templates(directory=str(BASE_DIR / "web" / "templates"))
+app.mount("/static", StaticFiles(directory=str(Path(__file__).resolve().parent / "static")), name="static")
+templates = Jinja2Templates(directory=str(Path(__file__).resolve().parent / "templates"))
 
 
 def _response_files() -> list[dict[str, str]]:

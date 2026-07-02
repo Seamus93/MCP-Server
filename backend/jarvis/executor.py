@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from jarvis.planner import FlightPlan, FlightStep
+from backend.jarvis.planner import FlightPlan, FlightStep
 
 
 class PlanExecutor:

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import asdict
 
-from jarvis.registry import JarvisAgent, get_agent
+from backend.jarvis.registry import JarvisAgent, get_agent
 
 
 KEYWORDS: dict[str, set[str]] = {

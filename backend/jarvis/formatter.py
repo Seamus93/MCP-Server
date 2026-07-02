@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from jarvis.registry import JarvisAgent
+from backend.jarvis.registry import JarvisAgent
 
 
 def format_agent_response(agent: JarvisAgent, body: str) -> str:
