@@ -1,0 +1,31 @@
+name: Deploy
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  deploy:
+    name: Deploy VPS
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_KEY }}
+          port: 22
+          envs: APP_ENV,HOST,PORT,MCP_HOST_PORT,APP_DIR,PROJECT_NAME,PROJECT_URL,HEALTHCHECK_URL,OPENAI_MODEL,MCP_GATEWAY_TOKEN
+          script: |
+            export APP_DIR="${{ secrets.VPS_APP_DIR }}"
+            export DEPLOY_BRANCH="main"
+            export RENDER_DOTENV_FROM_ENV="true"
+            cd "$APP_DIR"
+            ./scripts/deploy-vps.sh
