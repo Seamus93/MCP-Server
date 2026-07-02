@@ -20,9 +20,9 @@ Body:
 
 ```json
 {
-  "command": "Lavora su AsteSmart e proponi il prossimo step",
-  "repository": "Seamus93/Astesmart",
-  "repo_path": "/home/ubuntu/repos/Astesmart",
+  "command": "Lavora su mcp-server e proponi il prossimo step",
+  "repository": "Seamus93/mcp-server",
+  "repo_path": "/home/ubuntu/repos/mcp-server",
   "risk_level": "normal",
   "mode": "prompt_pack"
 }
