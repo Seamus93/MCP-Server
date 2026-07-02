@@ -65,36 +65,20 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-          cache: 'pip'
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install -r requirements-dev.txt
-
-      - name: Generate coverage report
-        env:
-          PYTHONPATH: .
-        run: python -m pytest -q --cov=. --cov-report=xml
-
       - name: SonarQube scan
         if: ${{ env.SONAR_TOKEN != '' && env.SONAR_ORGANIZATION != '' }}
-        uses: SonarSource/sonarqube-scan-action@v8
+        uses: SonarSource/sonarqube-scan-action@v6
         with:
-          args: >
+          args: >-
             -Dsonar.organization=${{ env.SONAR_ORGANIZATION }}
-            -Dsonar.sources=.
-            -Dsonar.tests=tests
-            -Dsonar.python.coverage.reportPaths=coverage.xml
+            -Dsonar.host.url=https://sonarcloud.io
+        env:
+          SONAR_TOKEN: ${{ env.SONAR_TOKEN }}
+          SONAR_HOST_URL: https://sonarcloud.io
 
-      - name: Skip SonarQube scan
+      - name: Sonar skipped
         if: ${{ env.SONAR_TOKEN == '' || env.SONAR_ORGANIZATION == '' }}
-        run: echo "SONAR_TOKEN or SONAR_ORGANIZATION not configured. Skipping Sonar."
+        run: 'echo "Sonar non configurato nel repository remoto: job completato come no-op."'
 
   security:
     name: Security
