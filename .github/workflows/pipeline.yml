@@ -56,7 +56,6 @@ jobs:
     needs: ci
     if: ${{ github.actor != 'dependabot[bot]' }}
     runs-on: ubuntu-latest
-    continue-on-error: true
     env:
       SONAR_ORGANIZATION: ${{ vars.SONAR_ORGANIZATION }}
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -86,7 +85,6 @@ jobs:
       - name: SonarQube scan
         if: ${{ env.SONAR_TOKEN != '' && env.SONAR_ORGANIZATION != '' }}
         uses: SonarSource/sonarqube-scan-action@v8
-        continue-on-error: true
         with:
           args: >
             -Dsonar.organization=${{ env.SONAR_ORGANIZATION }}
@@ -152,7 +150,7 @@ jobs:
     needs:
       - sonar
       - security
-    if: ${{ always() && github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.ENABLE_VERCEL == 'true' }}
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.ENABLE_VERCEL == 'true' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -171,7 +169,7 @@ jobs:
     needs:
       - sonar
       - security
-    if: ${{ always() && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
     env:
       VPS_HOST: ${{ secrets.VPS_HOST }}
