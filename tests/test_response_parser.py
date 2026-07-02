@@ -1,4 +1,4 @@
-from workflow.response_parser import ChatGPTResponseParser
+from backend.workflow.response_parser import ChatGPTResponseParser
 
 
 def test_parser_extracts_required_sections() -> None:

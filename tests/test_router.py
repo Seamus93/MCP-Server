@@ -1,4 +1,4 @@
-from jarvis.supervisor import JarvisSupervisor
+from backend.jarvis.supervisor import JarvisSupervisor
 
 
 def agent_keys(task: str) -> list[str]:
