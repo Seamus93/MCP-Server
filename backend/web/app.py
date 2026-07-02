@@ -99,7 +99,11 @@ def api_workflows() -> list[dict[str, str]]:
 
 @app.get("/", response_class=HTMLResponse)
 def index(request: Request) -> HTMLResponse:
-    return templates.TemplateResponse("index.html", {"request": request, "responses": _response_files(), "outbox": str(OUTBOX_DIR)})
+    return templates.TemplateResponse(
+        request=request,
+        name="index.html",
+        context={"responses": _response_files(), "outbox": str(OUTBOX_DIR)},
+    )
 
 
 @app.post("/tasks/prompt-pack", response_class=HTMLResponse)
@@ -111,7 +115,11 @@ def create_prompt_pack(request: Request, task: str = Form(...), repository: str 
         risk_level=risk_level,
         outbox_dir=str(OUTBOX_DIR),
     )
-    return templates.TemplateResponse("result.html", {"request": request, "title": "Prompt pack creato", "content": result})
+    return templates.TemplateResponse(
+        request=request,
+        name="result.html",
+        context={"title": "Prompt pack creato", "content": result},
+    )
 
 
 @app.post("/responses/ingest", response_class=HTMLResponse)
@@ -120,8 +128,9 @@ def ingest_response(request: Request, response: str = Form(...), response_id: st
     parsed = parser.parse(response)
     path = parser.save(parsed, outbox_dir=str(RESPONSES_DIR), response_id=response_id or None)
     return templates.TemplateResponse(
-        "result.html",
-        {"request": request, "title": "Risposta acquisita", "content": f"Stato: {parsed.status}\nFile: {path}\nWarning: {', '.join(parsed.warnings) or 'none'}\n\n{parsed.to_json()}"},
+        request=request,
+        name="result.html",
+        context={"title": "Risposta acquisita", "content": f"Stato: {parsed.status}\nFile: {path}\nWarning: {', '.join(parsed.warnings) or 'none'}\n\n{parsed.to_json()}"},
     )
 
 
