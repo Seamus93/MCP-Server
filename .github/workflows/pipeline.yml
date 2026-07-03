@@ -158,7 +158,7 @@ jobs:
       DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
       DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
       DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
-      VPS_APP_DIR: ${{ vars.VPS_APP_DIR }}
+      VPS_APP_DIR: ${{ secrets.VPS_APP_DIR }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
