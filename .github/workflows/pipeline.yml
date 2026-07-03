@@ -170,8 +170,14 @@ jobs:
             echo "enabled=true" >> "$GITHUB_OUTPUT"
           else
             echo "enabled=false" >> "$GITHUB_OUTPUT"
-            echo "VPS deploy secrets are not configured. Skipping remote deploy."
+            echo "VPS deploy secrets are not configured."
           fi
+
+      - name: Fail when VPS deploy is not configured
+        if: ${{ steps.deploy_config.outputs.enabled != 'true' }}
+        run: |
+          echo "Missing VPS_HOST, VPS_USER or VPS_SSH_KEY. The pipeline cannot update the public VPS."
+          exit 1
 
       - name: Deploy on VPS
         if: ${{ steps.deploy_config.outputs.enabled == 'true' }}
