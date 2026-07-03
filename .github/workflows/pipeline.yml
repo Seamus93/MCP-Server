@@ -159,74 +159,62 @@ jobs:
       DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
       DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
       VPS_APP_DIR: ${{ secrets.VPS_APP_DIR }}
+      PROJECT_URL: ${{ secrets.PROJECT_URL }}
+      HEALTH_URL: ${{ secrets.HEALTH_URL }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - name: Skip deploy when credentials are missing
+        if: ${{ env.DEPLOY_HOST == '' || env.DEPLOY_USER == '' || env.DEPLOY_KEY == '' }}
+        run: 'echo "Deploy saltato: credenziali deploy non configurate."'
 
-      - name: Check deploy configuration
-        id: deploy_config
-        run: |
-          if [ -n "$DEPLOY_HOST" ] && [ -n "$DEPLOY_USER" ] && [ -n "$DEPLOY_KEY" ]; then
-            echo "enabled=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "enabled=false" >> "$GITHUB_OUTPUT"
-            echo "DEPLOY_HOST, DEPLOY_USER or DEPLOY_KEY are not configured."
-          fi
+      - name: Deploy via SSH
+        if: ${{ env.DEPLOY_HOST != '' && env.DEPLOY_USER != '' && env.DEPLOY_KEY != '' }}
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ env.DEPLOY_HOST }}
+          username: ${{ env.DEPLOY_USER }}
+          key: ${{ env.DEPLOY_KEY }}
+          envs: VPS_APP_DIR,PROJECT_URL,HEALTH_URL
+          script: |
+            set -e
 
-      - name: Deploy on VPS
-        if: ${{ steps.deploy_config.outputs.enabled == 'true' }}
-        run: |
-          mkdir -p ~/.ssh
-          python - <<'PY'
-          import os
-          from pathlib import Path
-
-          key = os.environ["DEPLOY_KEY"]
-          if "\\n" in key and "\n" not in key:
-              key = key.replace("\\n", "\n")
-          key = key.replace("\r\n", "\n").replace("\r", "\n").strip() + "\n"
-
-          key_path = Path.home() / ".ssh" / "deploy_key"
-          key_path.write_text(key, encoding="utf-8")
-          key_path.chmod(0o600)
-          PY
-          ssh-keygen -y -f ~/.ssh/deploy_key >/dev/null
-          chmod 600 ~/.ssh/deploy_key
-          APP_DIR="${VPS_APP_DIR:-/opt/projects/mcp-server}"
-          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no "$DEPLOY_USER@$DEPLOY_HOST" \
-            "set -e
-            cd '$APP_DIR'
+            PROJECT_DIR="${VPS_APP_DIR:-/opt/projects/mcp-server}"
+            cd "$PROJECT_DIR"
             git config core.fileMode false
-            
-            # Check for dirty worktree
-            if [ -n \"\$(git status --porcelain)\" ]; then
-              echo 'Warning: Dirty worktree detected. Cleaning...'
-              git clean -fd
-              git reset --hard HEAD
+
+            DIRTY="$(git status --porcelain)"
+            if [ -n "$DIRTY" ]; then
+              BLOCKING="$(printf '%s\n' "$DIRTY" | awk '{print $2}' | grep -Ev '^(docs/|README\.md|\.github/workflows/|scripts/deploy-vps\.sh|\.env)$' || true)"
+              if [ -n "$BLOCKING" ]; then
+                echo "Deploy bloccato: worktree remoto sporco fuori whitelist."
+                printf '%s\n' "$DIRTY"
+                exit 1
+              fi
+              printf '%s\n' "$DIRTY" | awk '{print $2}' | xargs -r git checkout --
             fi
-            
-            # Pull latest changes
+
             git fetch origin main
             git checkout main
             git reset --hard origin/main
-            
-            # Deploy containers
-            docker compose pull || true
-            docker compose down
-            docker compose build --no-cache
-            docker compose up -d --force-recreate"
 
-      - name: Health check
-        if: ${{ steps.deploy_config.outputs.enabled == 'true' }}
-        run: |
-          APP_HOST="${{ secrets.DEPLOY_HOST }}"
-          for i in {1..30}; do
-            if curl -sf "http://$APP_HOST:8000/health" > /dev/null; then
-              echo "✓ Health check passed"
-              exit 0
+            docker compose pull || true
+            docker compose up -d --build --force-recreate
+
+            HEALTH_CHECK_RETRIES=12
+            for i in $(seq 1 "$HEALTH_CHECK_RETRIES"); do
+              if curl -fsS http://127.0.0.1:8000/health --max-time 5; then
+                break
+              fi
+              if [ "$i" -eq "$HEALTH_CHECK_RETRIES" ]; then
+                echo "Health check fallito."
+                docker compose ps
+                docker compose logs mcp-server --tail=100
+                exit 1
+              fi
+              sleep 5
+            done
+
+            if [ -x /opt/infra/scripts/register-project.sh ] && [ -n "${PROJECT_URL:-}" ] && [ -n "${HEALTH_URL:-}" ]; then
+              /opt/infra/scripts/register-project.sh mcp-server "${PROJECT_URL}" "${HEALTH_URL}"
+            else
+              echo "register-project.sh non eseguito: script o variabili mancanti."
             fi
-            echo "Attempt $i/30: Waiting for service to be ready..."
-            sleep 2
-          done
-          echo "✗ Health check failed after 60 seconds"
-          exit 1

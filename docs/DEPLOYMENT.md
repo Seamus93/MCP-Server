@@ -2,7 +2,7 @@
 
 ## Stato attuale
 
-Il progetto espone una dashboard web FastAPI dockerizzata e un workflow GitHub Actions per build, push su GHCR e deploy opzionale su VPS.
+Il progetto espone una dashboard web FastAPI dockerizzata e un workflow GitHub Actions per CI, controlli di sicurezza e deploy VPS via SSH.
 
 ## Avvio locale web
 
@@ -49,16 +49,16 @@ docker compose up -d
 Workflow:
 
 ```text
-.github/workflows/docker-deploy.yml
+.github/workflows/pipeline.yml
 ```
 
 Pipeline:
 
 1. installa dipendenze
 2. esegue test
-3. build Docker
-4. push immagine su GHCR
-5. deploy VPS via SSH se i secret sono configurati
+3. esegue controlli sicurezza
+4. esegue Sonar se configurato
+5. deploy VPS via `appleboy/ssh-action` se i secret sono configurati
 
 ## Secret richiesti per deploy VPS
 
@@ -66,7 +66,16 @@ Pipeline:
 DEPLOY_HOST
 DEPLOY_USER
 DEPLOY_KEY
-VPS_PORT opzionale
+VPS_APP_DIR
+```
+
+`DEPLOY_KEY` deve essere una private key SSH completa e non protetta da passphrase.
+
+Secret opzionali:
+
+```text
+PROJECT_URL
+HEALTH_URL
 ```
 
 ## VPS
@@ -82,7 +91,7 @@ accesso SSH
 La pipeline crea o usa:
 
 ```text
-~/mcp-server/docker-compose.yml
+${VPS_APP_DIR:-/opt/projects/mcp-server}/docker-compose.yml
 ```
 
 ## Reverse proxy consigliato
