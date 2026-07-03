@@ -4,6 +4,8 @@
 
 Il progetto espone una dashboard web FastAPI dockerizzata e un workflow GitHub Actions per CI, controlli di sicurezza e deploy VPS via SSH.
 
+Durante il deploy la pipeline recupera i secret applicativi da Infisical e il VPS genera `.env` da `.env.example` tramite `scripts/render-env-file.sh`.
+
 ## Avvio locale web
 
 ```bash
@@ -58,7 +60,9 @@ Pipeline:
 2. esegue test
 3. esegue controlli sicurezza
 4. esegue Sonar se configurato
-5. deploy VPS via `appleboy/ssh-action` se i secret sono configurati
+5. recupera secret runtime da Infisical
+6. deploy VPS via `appleboy/ssh-action` se le credenziali SSH sono configurate
+7. genera `.env` sul VPS e ricrea il container
 
 ## Secret richiesti per deploy VPS
 
@@ -67,6 +71,8 @@ DEPLOY_HOST
 DEPLOY_USER
 DEPLOY_KEY
 VPS_APP_DIR
+INFISICAL_CLIENT_ID
+INFISICAL_CLIENT_SECRET
 ```
 
 `DEPLOY_KEY` deve essere una private key SSH completa e non protetta da passphrase.
@@ -75,7 +81,10 @@ Secret opzionali:
 
 ```text
 PROJECT_URL
-HEALTH_URL
+HEALTHCHECK_URL
+MCP_GATEWAY_URL
+MCP_GATEWAY_TOKEN
+OPENAI_API_KEY
 ```
 
 ## VPS
@@ -93,6 +102,8 @@ La pipeline crea o usa:
 ```text
 ${VPS_APP_DIR:-/opt/projects/mcp-server}/docker-compose.yml
 ```
+
+Il file `.env` sul VPS e rigenerato a ogni deploy quando `RENDER_DOTENV_FROM_ENV=true`.
 
 ## Reverse proxy consigliato
 
