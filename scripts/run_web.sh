@@ -7,4 +7,4 @@ PORT="${PORT:-8000}"
 
 cd "$APP_DIR"
 . .venv/bin/activate
-exec uvicorn web.app:app --host "$HOST" --port "$PORT"
+exec uvicorn backend.web.app:app --host "$HOST" --port "$PORT"

@@ -2,7 +2,7 @@
 
 ## Obiettivo
 
-Esporre un endpoint HTTP semplice che puo essere chiamato da Google Assistant, IFTTT, Tasker, Automate, una futura APK o qualunque webhook.
+Esporre il Jarvis Gateway HTTP per Google Assistant/Home, IFTTT, Tasker, Automate, Gemini, una futura APK o qualunque webhook.
 
 ## Endpoint principale
 
@@ -36,7 +36,15 @@ Modalita zero-cost. Genera un prompt pack da incollare in ChatGPT Pro.
 
 ### api
 
-Modalita futura. Usa OpenAI API tramite `delegate_task`.
+Usa il provider configurato dietro `delegate_task`. Il Router resta responsabile della scelta di modello e tool.
+
+## Capability Jarvis
+
+```text
+GET /api/jarvis/capabilities
+```
+
+Restituisce agenti, provider preferiti, modelli e MCP autorizzati.
 
 ## Ingest risposta ChatGPT
 
@@ -79,8 +87,9 @@ Soluzioni compatibili:
 
 ## Flusso consigliato Android iniziale
 
-1. Comando vocale a Google Assistant che attiva una routine o Tasker.
-2. Tasker invia POST a `/api/voice-command`.
-3. Il VPS genera il prompt pack.
-4. L'utente incolla il prompt in ChatGPT Pro.
-5. La risposta viene acquisita tramite `/api/ingest-response`.
+1. Comando vocale a Google Home o Google Assistant.
+2. Routine, IFTTT o Tasker invia POST a `/api/voice-command`.
+3. Jarvis Gateway crea piano, routing e prompt pack o esecuzione API.
+4. Gli agenti lavorano tramite MCP autorizzati.
+5. Jarvis restituisce una risposta unica.
+6. Google legge la risposta.

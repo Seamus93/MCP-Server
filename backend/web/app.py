@@ -10,6 +10,7 @@ from fastapi.templating import Jinja2Templates
 
 from backend.jarvis.formatter import format_agent_response
 from backend.jarvis.planner import FlightPlanner
+from backend.jarvis.registry import list_agents
 from backend.jarvis.supervisor import JarvisSupervisor
 from backend.orchestrator.executor import DelegationExecutor
 from backend.web.schemas import VoiceCommandRequest, VoiceCommandResponse
@@ -20,7 +21,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 OUTBOX_DIR = BASE_DIR / ".mcp_outbox"
 RESPONSES_DIR = OUTBOX_DIR / "responses"
 
-app = FastAPI(title="MCP-Server Dashboard")
+app = FastAPI(title="Jarvis AIOS Gateway")
 app.mount("/static", StaticFiles(directory=str(Path(__file__).resolve().parent / "static")), name="static")
 templates = Jinja2Templates(directory=str(Path(__file__).resolve().parent / "templates"))
 
@@ -84,6 +85,28 @@ def api_jarvis_flight_plan(task: str, repository: str | None = None, repo_path: 
     return FlightPlanner().build(task=task, repository=repository, repo_path=repo_path).to_dict()
 
 
+@app.get("/api/jarvis/capabilities", dependencies=[Depends(require_gateway_token)])
+def api_jarvis_capabilities() -> dict[str, object]:
+    agents = list_agents()
+    return {
+        "system": "Jarvis AI Operating System",
+        "entrypoint": "backend.web.app:app",
+        "gateway_channels": ["api", "dashboard", "voice", "google_home", "ifttt", "gemini"],
+        "agents": [
+            {
+                "key": agent.key,
+                "name": agent.name,
+                "role": agent.role,
+                "provider": agent.preferred_provider,
+                "model": agent.preferred_model,
+                "model_policy": agent.model_policy,
+                "allowed_mcps": list(agent.allowed_mcps),
+            }
+            for agent in agents
+        ],
+    }
+
+
 @app.post("/api/ingest-response", dependencies=[Depends(require_gateway_token)])
 def api_ingest_response(response: str, response_id: str | None = None) -> dict[str, str]:
     parser = ChatGPTResponseParser()
@@ -102,7 +125,7 @@ def index(request: Request) -> HTMLResponse:
     return templates.TemplateResponse(
         request=request,
         name="index.html",
-        context={"responses": _response_files(), "outbox": str(OUTBOX_DIR)},
+        context={"responses": _response_files(), "outbox": str(OUTBOX_DIR), "agents": list_agents()},
     )
 
 

@@ -30,9 +30,32 @@
 
   <article class="card">
     <h2>Stato</h2>
-    <p><strong>Server:</strong> online</p>
+    <p><strong>Jarvis Gateway:</strong> online</p>
     <p><strong>Outbox:</strong> {{ outbox }}</p>
-    <p><strong>Modalità:</strong> zero-cost manual</p>
+    <p><strong>Entrypoint:</strong> backend.web.app:app</p>
+    <p><strong>Modalità:</strong> AIOS manual/API</p>
+  </article>
+
+  <article class="card span-2">
+    <h2>Jarvis AIOS</h2>
+    <div class="row">
+      <p><strong>Gateway</strong><br>API, Dashboard, Voce, Google Home, IFTTT, Gemini</p>
+      <p><strong>Planner</strong><br>crea Flight Plan senza eseguire</p>
+      <p><strong>Supervisor</strong><br>ordina agenti, priorita, rischio e parallelismo</p>
+      <p><strong>Router</strong><br>sceglie provider, modello, MCP e tool</p>
+    </div>
+  </article>
+
+  <article class="card span-2">
+    <h2>Agenti</h2>
+    <ul class="list">
+    {% for agent in agents %}
+      <li>
+        <strong>{{ agent.name }}</strong> - {{ agent.role }}<br>
+        <span>{{ agent.preferred_provider }}:{{ agent.preferred_model }} | MCP: {{ agent.allowed_mcps | join(", ") }}</span>
+      </li>
+    {% endfor %}
+    </ul>
   </article>
 
   <article class="card span-2">

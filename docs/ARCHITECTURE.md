@@ -2,27 +2,38 @@
 
 ## Scopo
 
-Separare interfaccia conversazionale, orchestrazione e tool eseguibili.
+Costruire Jarvis come AI Operating System personale: un Gateway unico riceve richieste, un Planner crea Flight Plan, il Supervisor orchestra agenti, il Router sceglie modelli e MCP, gli strumenti eseguono entro confini autorizzati.
 
 ## Flusso logico
 
 ```text
-Voice Assistant / ChatGPT / IDE Agent
+Google Home / Gemini / API / Dashboard
         ↓
-MCP Client
+Jarvis Gateway FastAPI
         ↓
-MCP-Server
+Planner
         ↓
-Tool sicuri + Orchestrator
+Supervisor
         ↓
-Repository / test runner / documentazione
+Router
+        ↓
+Agenti specializzati
+        ↓
+MCP Tools
+        ↓
+Risultato unificato
 ```
 
 ## Componenti
 
-- `server/main.py`: espone i tool MCP.
-- `orchestrator/`: modelli, registry agenti e routing task.
-- `prompts/`: istruzioni operative per agenti specializzati.
+- `backend/server/main.py`: espone i tool MCP.
+- `backend/web/app.py`: espone la dashboard FastAPI e gli endpoint HTTP.
+- `backend/jarvis/planner.py`: crea Flight Plan JSON senza eseguire.
+- `backend/jarvis/supervisor.py`: decide agenti, sequenza, priorita, rischio e gruppi paralleli.
+- `backend/jarvis/router.py`: sceglie agente, provider, modello, MCP e tool.
+- `backend/jarvis/registry.py`: definisce agenti, personalita, modello preferito e MCP autorizzati.
+- `backend/orchestrator/`: crea prompt pack e delega ai provider disponibili.
+- `backend/prompts/`: istruzioni operative per agenti specializzati.
 - `docs/`: memoria tecnica canonica del progetto.
 - `.skills/`: registro skill locali e standard del repository.
 
@@ -33,3 +44,6 @@ Repository / test runner / documentazione
 3. niente shell arbitraria
 4. ogni agente ha ruolo separato
 5. ogni modifica importante aggiorna la documentazione
+6. l'entrypoint web canonica e `backend.web.app:app`
+7. l'utente non sceglie provider, modello o tool
+8. ogni agente vede solo gli MCP autorizzati

@@ -10,7 +10,7 @@ Il progetto espone una dashboard web FastAPI dockerizzata e un workflow GitHub A
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-uvicorn web.app:app --reload
+uvicorn backend.web.app:app --reload
 ```
 
 Dashboard:
@@ -28,7 +28,7 @@ http://127.0.0.1:8000/health
 ## Avvio locale MCP
 
 ```bash
-python server/main.py
+python backend/server/main.py
 ```
 
 ## Docker locale
@@ -94,7 +94,7 @@ Caddy o Nginx davanti alla porta 8000.
 Esempio concettuale:
 
 ```text
-mcp-server -> python /path/to/MCP-Server/server/main.py
+mcp-server -> python /path/to/MCP-Server/backend/server/main.py
 ```
 
 ## Requisiti futuri
