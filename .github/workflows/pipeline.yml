@@ -177,7 +177,20 @@ jobs:
         if: ${{ steps.deploy_config.outputs.enabled == 'true' }}
         run: |
           mkdir -p ~/.ssh
-          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/deploy_key
+          python - <<'PY'
+          import os
+          from pathlib import Path
+
+          key = os.environ["DEPLOY_KEY"]
+          if "\\n" in key and "\n" not in key:
+              key = key.replace("\\n", "\n")
+          key = key.replace("\r\n", "\n").replace("\r", "\n").strip() + "\n"
+
+          key_path = Path.home() / ".ssh" / "deploy_key"
+          key_path.write_text(key, encoding="utf-8")
+          key_path.chmod(0o600)
+          PY
+          ssh-keygen -y -f ~/.ssh/deploy_key >/dev/null
           chmod 600 ~/.ssh/deploy_key
           APP_DIR="${VPS_APP_DIR:-/opt/projects/mcp-server}"
           ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no "$DEPLOY_USER@$DEPLOY_HOST" \
