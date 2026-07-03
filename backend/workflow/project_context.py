@@ -23,7 +23,7 @@ class ProjectContextLoader:
     def load(self, repo_path: str, files: list[str] | None = None) -> str:
         root = Path(repo_path).resolve()
         if not root.exists():
-            raise ValueError("Repository path not found")
+            return f"Repository path not found: {root}"
         selected_files = files or DEFAULT_CONTEXT_FILES
         chunks: list[str] = []
         for relative_path in selected_files:

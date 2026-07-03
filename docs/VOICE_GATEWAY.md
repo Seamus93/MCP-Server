@@ -22,7 +22,7 @@ Body:
 {
   "command": "Lavora su mcp-server e proponi il prossimo step",
   "repository": "Seamus93/mcp-server",
-  "repo_path": "/home/ubuntu/repos/mcp-server",
+  "repo_path": "/app",
   "risk_level": "normal",
   "mode": "prompt_pack"
 }
@@ -93,3 +93,9 @@ Soluzioni compatibili:
 4. Gli agenti lavorano tramite MCP autorizzati.
 5. Jarvis restituisce una risposta unica.
 6. Google legge la risposta.
+
+## Note path repository
+
+Quando il gateway gira in Docker, `repo_path` deve essere un path visibile dal container. Il default consigliato e `/app`.
+
+Se il path non esiste, Jarvis genera comunque il prompt pack e segnala che il repository locale non e stato trovato.
