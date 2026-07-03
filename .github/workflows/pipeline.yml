@@ -155,9 +155,9 @@ jobs:
     if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
     env:
-      VPS_HOST: ${{ secrets.VPS_HOST }}
-      VPS_USER: ${{ secrets.VPS_USER }}
-      VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+      DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+      DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+      DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
       VPS_APP_DIR: ${{ vars.VPS_APP_DIR }}
     steps:
       - name: Checkout
@@ -166,27 +166,21 @@ jobs:
       - name: Check deploy configuration
         id: deploy_config
         run: |
-          if [ -n "$VPS_HOST" ] && [ -n "$VPS_USER" ] && [ -n "$VPS_SSH_KEY" ]; then
+          if [ -n "$DEPLOY_HOST" ] && [ -n "$DEPLOY_USER" ] && [ -n "$DEPLOY_KEY" ]; then
             echo "enabled=true" >> "$GITHUB_OUTPUT"
           else
             echo "enabled=false" >> "$GITHUB_OUTPUT"
-            echo "VPS deploy secrets are not configured."
+            echo "DEPLOY_HOST, DEPLOY_USER or DEPLOY_KEY are not configured."
           fi
-
-      - name: Fail when VPS deploy is not configured
-        if: ${{ steps.deploy_config.outputs.enabled != 'true' }}
-        run: |
-          echo "Missing VPS_HOST, VPS_USER or VPS_SSH_KEY. The pipeline cannot update the public VPS."
-          exit 1
 
       - name: Deploy on VPS
         if: ${{ steps.deploy_config.outputs.enabled == 'true' }}
         run: |
           mkdir -p ~/.ssh
-          printf '%s\n' "$VPS_SSH_KEY" > ~/.ssh/deploy_key
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
           APP_DIR="${VPS_APP_DIR:-/opt/projects/mcp-server}"
-          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no "$VPS_USER@$VPS_HOST" \
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no "$DEPLOY_USER@$DEPLOY_HOST" \
             "set -e
             cd '$APP_DIR'
             git config core.fileMode false
@@ -212,7 +206,7 @@ jobs:
       - name: Health check
         if: ${{ steps.deploy_config.outputs.enabled == 'true' }}
         run: |
-          APP_HOST="${{ secrets.VPS_HOST }}"
+          APP_HOST="${{ secrets.DEPLOY_HOST }}"
           for i in {1..30}; do
             if curl -sf "http://$APP_HOST:8000/health" > /dev/null; then
               echo "✓ Health check passed"

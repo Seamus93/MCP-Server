@@ -63,9 +63,9 @@ Pipeline:
 ## Secret richiesti per deploy VPS
 
 ```text
-VPS_HOST
-VPS_USER
-VPS_SSH_KEY
+DEPLOY_HOST
+DEPLOY_USER
+DEPLOY_KEY
 VPS_PORT opzionale
 ```
 
