@@ -204,4 +204,5 @@ jobs:
 
             export APP_DIR="${VPS_APP_DIR:-/opt/projects/mcp-server}"
             cd "$APP_DIR"
+            chmod +x scripts/deploy-vps.sh scripts/render-env-file.sh
             ./scripts/deploy-vps.sh
