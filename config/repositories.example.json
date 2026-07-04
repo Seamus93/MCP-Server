@@ -1,0 +1,19 @@
+{
+  "repositories": {
+    "mcp-server": {
+      "name": "MCP-Server",
+      "github": "Seamus93/MCP-Server",
+      "local_path": "/opt/jarvis/mcp-server"
+    },
+    "astesmart": {
+      "name": "Astesmart",
+      "github": "Seamus93/Astesmart",
+      "local_path": "/opt/jarvis/astesmart"
+    },
+    "agriavenger": {
+      "name": "AgriAvenger",
+      "github": "Seamus93/AgriAvenger",
+      "local_path": "/opt/jarvis/agriavenger"
+    }
+  }
+}
